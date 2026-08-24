@@ -284,15 +284,14 @@ class _LuxuryButtonState extends State<LuxuryButton> {
           color: widget.filled
               ? (_hover ? colors.brass : colors.blue)
               : Colors.transparent,
+          shape: Border.all(color: colors.brass, width: 1),
           child: InkWell(
             onTap: widget.onPressed,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-              decoration: BoxDecoration(
-                border: Border.all(color: colors.brass, width: 1),
-              ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               child: Text(
                 widget.label.toUpperCase(),
+                textAlign: TextAlign.center,
                 style: GoogleFonts.cinzel(
                   color: widget.filled ? colors.onDark : colors.brass,
                   fontSize: 12,

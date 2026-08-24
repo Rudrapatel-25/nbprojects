@@ -32,6 +32,8 @@ class SitePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = SiteColors(content.palette);
+    final compact = MediaQuery.sizeOf(context).width < 980;
+
     return SiteScope(
       colors: colors,
       content: content,
@@ -63,12 +65,15 @@ class SitePage extends StatelessWidget {
             ...slivers,
             if (content.layout.showFooter)
               SliverToBoxAdapter(child: SiteFooter(preview: preview)),
+            if (compact)
+              const SliverToBoxAdapter(child: SizedBox(height: 96)),
           ],
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         floatingActionButton: preview || !showWhatsApp || !content.layout.showWhatsApp
             ? null
             : Padding(
-                padding: const EdgeInsets.only(bottom: 28),
+                padding: EdgeInsets.only(bottom: compact ? 8 : 28),
                 child: FloatingActionButton.extended(
                   backgroundColor: colors.brass,
                   foregroundColor: colors.black,
@@ -84,6 +89,9 @@ class SitePage extends StatelessWidget {
                   ),
                 ),
               ),
+        bottomNavigationBar: !compact || preview
+            ? null
+            : _MobileActionBar(onCtaTap: onCtaTap),
       ),
     );
   }
@@ -148,139 +156,124 @@ class SiteNav extends StatelessWidget {
               ),
             ),
             if (wide)
-              LuxuryButton(
-                label: content.headerCta,
-                onPressed: handleCta,
-              ),
-            if (!wide)
-              IconButton(
-                onPressed: preview ? null : () => _openMenu(context, handleCta),
-                icon: Icon(Icons.menu, color: colors.text),
+              Align(
+                alignment: Alignment.centerRight,
+                child: LuxuryButton(
+                  label: content.headerCta,
+                  onPressed: handleCta,
+                ),
               ),
           ],
         ),
       ),
     );
   }
+}
 
-  void _openMenu(BuildContext context, VoidCallback handleCta) {
+class _MobileActionBar extends StatelessWidget {
+  const _MobileActionBar({this.onCtaTap});
+
+  final VoidCallback? onCtaTap;
+
+  Future<void> _call(SiteContent content) async {
+    final digits = content.phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (digits.isEmpty) return;
+    await launchUrl(Uri.parse('tel:$digits'), mode: LaunchMode.externalApplication);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scope = SiteScope.of(context);
     final colors = scope.colors;
     final content = scope.content;
 
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF141210),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: colors.brass.withValues(alpha: 0.4), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.6),
-                blurRadius: 32,
-                spreadRadius: 4,
-              )
+    return Material(
+      color: const Color(0xFF141210),
+      elevation: 16,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => _call(content),
+                  child: Container(
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1F1B17),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: colors.brass.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.phone, color: colors.brass, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'CALL',
+                          style: GoogleFonts.cinzel(
+                            color: colors.onDark,
+                            fontSize: 12,
+                            letterSpacing: 1.6,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: InkWell(
+                  onTap: () {
+                    if (onCtaTap != null) {
+                      onCtaTap!();
+                    }
+                  },
+                  child: Container(
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colors.brass,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.calendar_month_outlined,
+                          color: colors.black,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'PRIVATE VIEWING',
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.cinzel(
+                              color: colors.black,
+                              fontSize: 12,
+                              letterSpacing: 1.4,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colors.brass.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: _BrandMark(content: content, colors: colors, isDark: true),
-                  ),
-                  const SizedBox(height: 24),
-                  Divider(color: colors.brass.withValues(alpha: 0.2)),
-                  const SizedBox(height: 20),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        Navigator.pop(context);
-                        handleCta();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: colors.brass,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.calendar_today_outlined, color: colors.black, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              content.headerCta.toUpperCase(),
-                              style: GoogleFonts.cinzel(
-                                color: colors.black,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        Navigator.pop(context);
-                        openWhatsApp(content);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: colors.brass.withValues(alpha: 0.5)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.chat_outlined, color: colors.brass, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              'ENQUIRE ON WHATSAPP',
-                              style: GoogleFonts.cinzel(
-                                color: colors.brass,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

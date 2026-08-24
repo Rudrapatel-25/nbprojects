@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/site_content.dart';
+import '../services/content_repository.dart';
 import '../widgets/enquiry_form.dart';
 import '../widgets/luxury.dart';
 import '../widgets/luxury_image.dart';
@@ -134,6 +135,8 @@ class _InquiryPageState extends State<InquiryPage> {
       'floorPlans' => const _FloorPlansSection(),
       'video' => const _VideoSection(),
       'connectivity' => const _ConnectivitySection(),
+      'credibility' => const _CredibilitySection(),
+      'brochure' => const _BrochureCtaSection(),
       'updates' => const _UpdatesSection(),
       'faqs' => const _FaqsSection(),
       'enquiry' => const _EnquirySection(),
@@ -158,7 +161,7 @@ class _HeroSection extends StatelessWidget {
         content.heroLocation,
         content.configurations,
         content.heroPossession,
-      ].where((e) => e.trim().isNotEmpty).join('  ·  '),
+      ].where((e) => e.trim().isNotEmpty).join(' | '),
       height: MediaQuery.sizeOf(context).height * content.layout.heroHeight,
       bottom: Wrap(
         spacing: 12,
@@ -744,56 +747,437 @@ class _GallerySection extends StatelessWidget {
 class _FloorPlansSection extends StatelessWidget {
   const _FloorPlansSection();
 
+  static const _residences = <_ResidenceOffer>[
+    _ResidenceOffer(
+      title: '4 BHK Simplex Residence',
+      meta: '₹4.5 Cr Onwards • 5,420 Sq. Ft. Approx.',
+      imageUrl: 'assets/images/nblegacy/Final_4BHK_Livingroom_View_01.jpg',
+      configLabel: '4 BHK Simplex (5,420 Sq. Ft.)',
+      features: [
+        '4 Bedrooms with En-Suite Bathrooms',
+        'Expansive Living & Dining Balconies',
+        'Dedicated Househelp Quarter',
+        '100% Vastu Compliant Layout',
+      ],
+    ),
+    _ResidenceOffer(
+      title: '5 BHK Vertical Bungalow',
+      meta: '₹8.1 Cr Onwards • 9,400 Sq. Ft. Approx. (Duplex)',
+      imageUrl: 'assets/images/nblegacy/Final_5BHK_Living room_View.jpg',
+      configLabel: '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
+      features: [
+        'Double-Height Grand Living Room',
+        'Private Elevator Access',
+        'Master Suite with Sky Terrace',
+        'Bungalow Scale with Tower Security',
+      ],
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final content = SiteScope.of(context).content;
-    if (content.floorPlans.isEmpty) return const SizedBox.shrink();
     final colors = SiteScope.of(context).colors;
-    return ContentWrap(
-      child: Reveal(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              eyebrow: 'Floor plans',
-              title: 'Residences drawn for daily life.',
-            ),
-            const SizedBox(height: 28),
-            Wrap(
-              spacing: 24,
-              runSpacing: 24,
+    return ColoredBox(
+      color: colors.background,
+      child: ContentWrap(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 72),
+          child: Reveal(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final plan in content.floorPlans)
-                  SizedBox(
-                    width: 360,
-                    child: Column(
+                const SectionHeader(
+                  eyebrow: 'EXCLUSIVELY DESIGNED RESIDENCES',
+                  title: 'Masterpieces of Scale & Spatial Luxury',
+                ),
+                const SizedBox(height: 40),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final stacked = constraints.maxWidth < 880;
+                    final gap = 28.0;
+                    final cardWidth = stacked
+                        ? constraints.maxWidth
+                        : (constraints.maxWidth - gap) / 2;
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
+                      children: [
+                        for (final offer in _residences)
+                          SizedBox(
+                            width: cardWidth,
+                            child: _ResidenceCard(
+                              offer: offer,
+                              onRequestFloorPlan: () =>
+                                  _showFloorPlanRequest(context, offer),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFloorPlanRequest(
+    BuildContext context,
+    _ResidenceOffer offer,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.72),
+      builder: (dialogContext) => _FloorPlanRequestDialog(
+        initialConfig: offer.configLabel,
+      ),
+    );
+  }
+}
+
+class _ResidenceOffer {
+  const _ResidenceOffer({
+    required this.title,
+    required this.meta,
+    required this.imageUrl,
+    required this.configLabel,
+    required this.features,
+  });
+
+  final String title;
+  final String meta;
+  final String imageUrl;
+  final String configLabel;
+  final List<String> features;
+}
+
+class _ResidenceCard extends StatelessWidget {
+  const _ResidenceCard({
+    required this.offer,
+    required this.onRequestFloorPlan,
+  });
+
+  final _ResidenceOffer offer;
+  final VoidCallback onRequestFloorPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SiteScope.of(context).colors;
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border.all(color: colors.brass.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 11,
+            child: LuxuryImage(url: offer.imageUrl),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  offer.title,
+                  style: GoogleFonts.playfairDisplay(
+                    color: colors.text,
+                    fontSize: 26,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  offer.meta,
+                  style: GoogleFonts.outfit(
+                    color: colors.brass,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Divider(color: colors.brass.withValues(alpha: 0.35), height: 1),
+                const SizedBox(height: 18),
+                for (final feature in offer.features)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (plan.imageUrl.isNotEmpty)
-                          SizedBox(
-                            height: 240,
-                            child: LuxuryImage(url: plan.imageUrl),
-                          ),
-                        const SizedBox(height: 12),
-                        Text(
-                          plan.title,
-                          style: GoogleFonts.playfairDisplay(
-                            color: colors.text,
-                            fontSize: 22,
-                          ),
+                        Icon(
+                          Icons.check_circle,
+                          size: 18,
+                          color: colors.brass,
                         ),
-                        Text(
-                          plan.subtitle,
-                          style: GoogleFonts.outfit(color: colors.muted),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            feature,
+                            style: GoogleFonts.outfit(
+                              color: colors.text,
+                              fontSize: 14,
+                              height: 1.4,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: LuxuryButton(
+                    label: 'GET DETAILED FLOOR PLAN',
+                    onPressed: onRequestFloorPlan,
+                  ),
+                ),
               ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FloorPlanRequestDialog extends StatefulWidget {
+  const _FloorPlanRequestDialog({required this.initialConfig});
+
+  final String initialConfig;
+
+  @override
+  State<_FloorPlanRequestDialog> createState() =>
+      _FloorPlanRequestDialogState();
+}
+
+class _FloorPlanRequestDialogState extends State<_FloorPlanRequestDialog> {
+  final _form = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  late String _config;
+  String _purpose = 'Primary Residence';
+  bool _sending = false;
+
+  static const _configs = [
+    '4 BHK Simplex (5,420 Sq. Ft.)',
+    '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
+    'Both Configurations',
+  ];
+
+  static const _purposes = [
+    'Primary Residence',
+    'Investment',
+    'Second Home',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _config = widget.initialConfig;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!(_form.currentState?.validate() ?? false)) return;
+    setState(() => _sending = true);
+    final content = SiteScope.of(context).content;
+    final message = StringBuffer()
+      ..writeln('📋 *Floor Plan Request* — *${content.projectName}*:')
+      ..writeln('')
+      ..writeln('👤 *Name:* ${_name.text.trim()}')
+      ..writeln('📞 *Mobile:* ${_phone.text.trim()}')
+      ..writeln('🏠 *Configuration:* $_config')
+      ..writeln('🎯 *Purpose:* $_purpose');
+
+    try {
+      try {
+        await ContentRepository().submitInquiry(
+          name: _name.text.trim(),
+          email: '',
+          phone: _phone.text.trim(),
+          project: _config,
+          projectId: 'nb-legacy-tower',
+          message: message.toString().trim(),
+        );
+      } catch (_) {}
+      await openWhatsApp(content, message: message.toString().trim());
+      if (mounted) Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not send request: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SiteScope.of(context).colors;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Material(
+          color: const Color(0xFF1A1714),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: colors.brass.withValues(alpha: 0.55)),
+            ),
+            padding: const EdgeInsets.fromLTRB(28, 22, 20, 28),
+            child: Form(
+              key: _form,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'FLOOR PLAN REQUEST',
+                        style: GoogleFonts.cinzel(
+                          color: colors.brass,
+                          fontSize: 11,
+                          letterSpacing: 2.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(
+                          Icons.close,
+                          color: colors.onDark.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Get the Detailed Floor Plan',
+                    style: GoogleFonts.playfairDisplay(
+                      color: colors.onDark,
+                      fontSize: 28,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  _darkField(
+                    controller: _name,
+                    label: 'Full Name',
+                    requiredField: true,
+                  ),
+                  const SizedBox(height: 18),
+                  _darkField(
+                    controller: _phone,
+                    label: 'Mobile Number',
+                    requiredField: true,
+                    phone: true,
+                  ),
+                  const SizedBox(height: 18),
+                  _darkDropdown(
+                    label: 'Preferred Configuration',
+                    value: _config,
+                    items: _configs,
+                    onChanged: (v) => setState(() => _config = v ?? _config),
+                  ),
+                  const SizedBox(height: 18),
+                  _darkDropdown(
+                    label: 'Purpose of Purchase',
+                    value: _purpose,
+                    items: _purposes,
+                    onChanged: (v) => setState(() => _purpose = v ?? _purpose),
+                  ),
+                  const SizedBox(height: 28),
+                  LuxuryButton(
+                    label: _sending ? 'SENDING...' : 'GET DETAILED FLOOR PLAN',
+                    onPressed: _sending ? () {} : _submit,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _darkField({
+    required TextEditingController controller,
+    required String label,
+    bool requiredField = false,
+    bool phone = false,
+  }) {
+    final colors = SiteScope.of(context).colors;
+    return TextFormField(
+      controller: controller,
+      keyboardType: phone ? TextInputType.phone : TextInputType.text,
+      style: GoogleFonts.outfit(color: colors.onDark, fontSize: 15),
+      validator: requiredField
+          ? (value) =>
+              value == null || value.trim().isEmpty ? 'Required' : null
+          : null,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.outfit(
+          color: colors.onDark.withValues(alpha: 0.55),
+        ),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: colors.onDark.withValues(alpha: 0.35),
+          ),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: colors.brass),
+        ),
+      ),
+    );
+  }
+
+  Widget _darkDropdown({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final colors = SiteScope.of(context).colors;
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      dropdownColor: const Color(0xFF241F1B),
+      style: GoogleFonts.outfit(color: colors.onDark, fontSize: 15),
+      icon: Icon(Icons.keyboard_arrow_down, color: colors.brass),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.outfit(
+          color: colors.onDark.withValues(alpha: 0.55),
+        ),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: colors.onDark.withValues(alpha: 0.35),
+          ),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: colors.brass),
+        ),
+      ),
+      items: [
+        for (final item in items)
+          DropdownMenuItem(value: item, child: Text(item)),
+      ],
+      onChanged: onChanged,
     );
   }
 }
@@ -844,11 +1228,15 @@ class _VideoSection extends StatelessWidget {
 class _ConnectivitySection extends StatelessWidget {
   const _ConnectivitySection();
 
+  static const _highlightCount = 4;
+
   @override
   Widget build(BuildContext context) {
     final content = SiteScope.of(context).content;
     final colors = SiteScope.of(context).colors;
     const projectLocation = LatLng(23.069477029461932, 72.49467098115846);
+    final highlights = content.locations.take(_highlightCount).toList();
+    final more = content.locations.skip(_highlightCount).toList();
 
     return ColoredBox(
       color: colors.black,
@@ -915,7 +1303,10 @@ class _ConnectivitySection extends StatelessWidget {
                                   width: 250,
                                   height: 100,
                                   alignment: Alignment.topCenter,
-                                  child: _CustomMapPin(content: content, colors: colors),
+                                  child: _CustomMapPin(
+                                    content: content,
+                                    colors: colors,
+                                  ),
                                 ),
                               ],
                             ),
@@ -932,22 +1323,25 @@ class _ConnectivitySection extends StatelessWidget {
                               mode: LaunchMode.externalApplication,
                             ),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
                                 color: colors.black.withValues(alpha: 0.85),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: colors.brass.withValues(alpha: 0.6)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.4),
-                                    blurRadius: 10,
-                                  )
-                                ],
+                                border: Border.all(
+                                  color: colors.brass.withValues(alpha: 0.6),
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.directions, color: colors.brass, size: 16),
+                                  Icon(
+                                    Icons.directions,
+                                    color: colors.brass,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'GET DIRECTIONS',
@@ -967,38 +1361,100 @@ class _ConnectivitySection extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 36),
-                Wrap(
-                  spacing: 18,
-                  runSpacing: 18,
-                  children: [
-                    for (final item in content.locations)
-                      SizedBox(
-                        width: 240,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.subtitle,
-                              style: GoogleFonts.cinzel(
-                                color: colors.brass,
-                                fontSize: 12,
-                                letterSpacing: 1.6,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              item.title,
-                              style: GoogleFonts.outfit(
-                                color: colors.onDark,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
+                if (highlights.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF141210),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: colors.brass.withValues(alpha: 0.45),
                       ),
-                  ],
-                ),
+                    ),
+                    child: Wrap(
+                      spacing: 28,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.spaceBetween,
+                      children: [
+                        for (final item in highlights)
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '${item.subtitle}  ',
+                                  style: GoogleFonts.cinzel(
+                                    color: colors.brass,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.1,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: item.title,
+                                  style: GoogleFonts.outfit(
+                                    color: colors.onDark.withValues(alpha: 0.9),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (more.isNotEmpty) ...[
+                  const SizedBox(height: 36),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final columns = constraints.maxWidth >= 980
+                          ? 3
+                          : constraints.maxWidth >= 640
+                              ? 2
+                              : 1;
+                      final gap = 24.0;
+                      final width =
+                          (constraints.maxWidth - gap * (columns - 1)) /
+                              columns;
+                      return Wrap(
+                        spacing: gap,
+                        runSpacing: gap,
+                        children: [
+                          for (final item in more)
+                            SizedBox(
+                              width: width,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.subtitle,
+                                    style: GoogleFonts.cinzel(
+                                      color: colors.brass,
+                                      fontSize: 13,
+                                      letterSpacing: 1.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    item.title,
+                                    style: GoogleFonts.outfit(
+                                      color: colors.onDark,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -1324,6 +1780,341 @@ class _EnquirySection extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CredibilitySection extends StatelessWidget {
+  const _CredibilitySection();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SiteScope.of(context).colors;
+    return ContentWrap(
+      child: Reveal(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'DEVELOPER CREDIBILITY',
+              style: GoogleFonts.cinzel(
+                color: colors.brass,
+                fontSize: 12,
+                letterSpacing: 3.2,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'NB Developer — Since 1946. A legacy spanning eight decades.',
+              style: GoogleFonts.playfairDisplay(
+                color: colors.text,
+                fontSize: 34,
+                height: 1.25,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: Text(
+                'With a family enterprise heritage since 1946, NB Developer is committed to quality engineering, Vastu alignment, and structural longevity. Built to be inherited across generations.',
+                style: GoogleFonts.outfit(
+                  color: colors.muted,
+                  fontSize: 16,
+                  height: 1.8,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final stacked = constraints.maxWidth < 780;
+                final gap = 28.0;
+                final width = stacked
+                    ? constraints.maxWidth
+                    : (constraints.maxWidth - gap * 2) / 3;
+                const pillars = [
+                  ('Since 1946', 'A Legacy Spanning Eight Decades'),
+                  ('100% Vastu', 'Compliant Structural Planning'),
+                  ('Science Park', 'Ahmedabad Signature Address'),
+                ];
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: 28,
+                  children: [
+                    for (final item in pillars)
+                      SizedBox(
+                        width: width,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.$1,
+                              style: GoogleFonts.playfairDisplay(
+                                color: colors.brass,
+                                fontSize: 28,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              item.$2,
+                              style: GoogleFonts.outfit(
+                                color: colors.text,
+                                fontSize: 15,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BrochureCtaSection extends StatelessWidget {
+  const _BrochureCtaSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SiteScope.of(context).colors;
+    final content = SiteScope.of(context).content;
+    return ContentWrap(
+      child: Reveal(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 56),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1714),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colors.brass.withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            children: [
+              Text(
+                'GET THE DETAILED BROCHURE & FLOOR PLANS',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.cinzel(
+                  color: colors.brass,
+                  fontSize: 12,
+                  letterSpacing: 2.8,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 18),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Text(
+                  'Unlock complete architectural specs, unit dimensions, amenity breakdowns, and location analysis.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.playfairDisplay(
+                    color: colors.onDark,
+                    fontSize: 28,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              LuxuryButton(
+                label: 'GET DETAILED BROCHURE',
+                onPressed: () {
+                  if (content.brochureUrl.trim().isNotEmpty) {
+                    launchUrl(
+                      Uri.parse(content.brochureUrl),
+                      mode: LaunchMode.externalApplication,
+                    );
+                    return;
+                  }
+                  showDialog<void>(
+                    context: context,
+                    barrierColor: Colors.black.withValues(alpha: 0.72),
+                    builder: (_) => const _BrochureRequestDialog(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BrochureRequestDialog extends StatefulWidget {
+  const _BrochureRequestDialog();
+
+  @override
+  State<_BrochureRequestDialog> createState() => _BrochureRequestDialogState();
+}
+
+class _BrochureRequestDialogState extends State<_BrochureRequestDialog> {
+  final _form = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  String _config = 'Both Configurations';
+  bool _sending = false;
+
+  static const _configs = [
+    '4 BHK Simplex (5,420 Sq. Ft.)',
+    '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
+    'Both Configurations',
+  ];
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!(_form.currentState?.validate() ?? false)) return;
+    setState(() => _sending = true);
+    final content = SiteScope.of(context).content;
+    final message = StringBuffer()
+      ..writeln('📋 *Brochure Request* — *${content.projectName}*:')
+      ..writeln('')
+      ..writeln('👤 *Name:* ${_name.text.trim()}')
+      ..writeln('📞 *Mobile:* ${_phone.text.trim()}')
+      ..writeln('🏠 *Configuration:* $_config');
+
+    try {
+      try {
+        await ContentRepository().submitInquiry(
+          name: _name.text.trim(),
+          email: '',
+          phone: _phone.text.trim(),
+          project: _config,
+          projectId: 'nb-legacy-tower',
+          message: message.toString().trim(),
+        );
+      } catch (_) {}
+      await openWhatsApp(content, message: message.toString().trim());
+      if (mounted) Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not send request: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SiteScope.of(context).colors;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Material(
+          color: const Color(0xFF1A1714),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: colors.brass.withValues(alpha: 0.55)),
+            ),
+            padding: const EdgeInsets.fromLTRB(28, 22, 20, 28),
+            child: Form(
+              key: _form,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'BROCHURE REQUEST',
+                        style: GoogleFonts.cinzel(
+                          color: colors.brass,
+                          fontSize: 11,
+                          letterSpacing: 2.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(
+                          Icons.close,
+                          color: colors.onDark.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Get the Detailed Project Brochure',
+                    style: GoogleFonts.playfairDisplay(
+                      color: colors.onDark,
+                      fontSize: 28,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  TextFormField(
+                    controller: _name,
+                    style: GoogleFonts.outfit(color: colors.onDark),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Required' : null,
+                    decoration: _darkDecoration('Full Name'),
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    style: GoogleFonts.outfit(color: colors.onDark),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Required' : null,
+                    decoration: _darkDecoration('Mobile Number'),
+                  ),
+                  const SizedBox(height: 18),
+                  DropdownButtonFormField<String>(
+                    initialValue: _config,
+                    dropdownColor: const Color(0xFF241F1B),
+                    style: GoogleFonts.outfit(color: colors.onDark),
+                    icon: Icon(Icons.keyboard_arrow_down, color: colors.brass),
+                    decoration: _darkDecoration('Preferred Configuration'),
+                    items: [
+                      for (final item in _configs)
+                        DropdownMenuItem(value: item, child: Text(item)),
+                    ],
+                    onChanged: (v) => setState(() => _config = v ?? _config),
+                  ),
+                  const SizedBox(height: 28),
+                  LuxuryButton(
+                    label: _sending ? 'SENDING...' : 'GET DETAILED BROCHURE',
+                    onPressed: _sending ? () {} : _submit,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _darkDecoration(String label) {
+    final colors = SiteScope.of(context).colors;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: GoogleFonts.outfit(
+        color: colors.onDark.withValues(alpha: 0.55),
+      ),
+      enabledBorder: UnderlineInputBorder(
+        borderSide: BorderSide(color: colors.onDark.withValues(alpha: 0.35)),
+      ),
+      focusedBorder: UnderlineInputBorder(
+        borderSide: BorderSide(color: colors.brass),
       ),
     );
   }

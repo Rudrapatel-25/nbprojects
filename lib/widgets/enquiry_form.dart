@@ -33,9 +33,7 @@ class _EnquiryFormState extends State<EnquiryForm> {
   final _dateController = TextEditingController();
   int _step = 0;
   String _interest = '';
-  String _request = 'Site visit';
-  String _timeSlot = '';
-  String _timeWindow = '';
+  String _request = 'Primary Residence';
   bool _sending = false;
   bool _sent = false;
 
@@ -70,20 +68,11 @@ class _EnquiryFormState extends State<EnquiryForm> {
       if (_email.text.trim().isNotEmpty) {
         buffer.writeln('✉️ *Email:* ${_email.text.trim()}');
       }
-      buffer.writeln('🏠 *Interested in:* $_interest');
-      buffer.writeln('📋 *Request:* $_request');
+      buffer.writeln('🏠 *Configuration:* $_interest');
+      buffer.writeln('🎯 *Purpose:* $_request');
 
-      if (_request == 'Site visit') {
-        if (_dateController.text.isNotEmpty) {
-          buffer.writeln('📅 *Preferred Date:* ${_dateController.text}');
-        }
-        if (_timeSlot.isNotEmpty) {
-          buffer.writeln('⏰ *Preferred Time:* $_timeSlot');
-        }
-      } else if (_request == 'Callback') {
-        if (_timeWindow.isNotEmpty) {
-          buffer.writeln('⏰ *Preferred Window:* $_timeWindow');
-        }
+      if (_dateController.text.isNotEmpty) {
+        buffer.writeln('📅 *Preferred Date:* ${_dateController.text}');
       }
 
       if (_message.text.trim().isNotEmpty) {
@@ -181,15 +170,15 @@ class _EnquiryFormState extends State<EnquiryForm> {
             ),
             const SizedBox(height: 22),
             if (_step == 0) ...[
-              _field(_name, 'Full name', requiredField: true),
-              _field(_phone, 'Phone', requiredField: true, phone: true),
-              _field(_email, 'Email'),
+              _field(_name, 'Full Name', requiredField: true),
+              _field(_phone, 'Mobile Number', requiredField: true, phone: true),
+              _field(_email, 'Email (optional)'),
             ],
             if (_step == 1) ...[
               DropdownButtonFormField<String>(
                 initialValue: _interest,
                 dropdownColor: colors.surface,
-                decoration: _decoration('Interested in'),
+                decoration: _decoration('Preferred Configuration'),
                 items: [
                   for (final option in (content.interestedProjects.isNotEmpty
                       ? content.interestedProjects
@@ -202,46 +191,19 @@ class _EnquiryFormState extends State<EnquiryForm> {
               DropdownButtonFormField<String>(
                 initialValue: _request,
                 dropdownColor: colors.surface,
-                decoration: _decoration('How can we help?'),
+                decoration: _decoration('Purpose of Purchase'),
                 items: const [
-                  DropdownMenuItem(value: 'Site visit', child: Text('Book a site visit')),
-                  DropdownMenuItem(value: 'Callback', child: Text('Request a callback')),
-                  DropdownMenuItem(value: 'Brochure', child: Text('Request brochure')),
+                  DropdownMenuItem(value: 'Primary Residence', child: Text('Primary Residence')),
+                  DropdownMenuItem(value: 'Investment', child: Text('Investment')),
+                  DropdownMenuItem(value: 'Second Home', child: Text('Second Home')),
                 ],
                 onChanged: (value) => setState(() => _request = value ?? _request),
               ),
             ],
             if (_step == 2) ...[
-              if (_request == 'Site visit') ...[
-                _dateField('Preferred Date'),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  value: _timeSlot.isEmpty ? null : _timeSlot,
-                  dropdownColor: colors.surface,
-                  decoration: _decoration('Preferred Time Slot'),
-                  items: const [
-                    DropdownMenuItem(value: 'Morning (10 AM - 12 PM)', child: Text('Morning (10 AM - 12 PM)')),
-                    DropdownMenuItem(value: 'Afternoon (12 PM - 3 PM)', child: Text('Afternoon (12 PM - 3 PM)')),
-                    DropdownMenuItem(value: 'Evening (3 PM - 6 PM)', child: Text('Evening (3 PM - 6 PM)')),
-                  ],
-                  onChanged: (value) => setState(() => _timeSlot = value ?? _timeSlot),
-                ),
-                const SizedBox(height: 14),
-              ] else if (_request == 'Callback') ...[
-                DropdownButtonFormField<String>(
-                  value: _timeWindow.isEmpty ? null : _timeWindow,
-                  dropdownColor: colors.surface,
-                  decoration: _decoration('Preferred Time Window'),
-                  items: const [
-                    DropdownMenuItem(value: 'Morning', child: Text('Morning')),
-                    DropdownMenuItem(value: 'Afternoon', child: Text('Afternoon')),
-                    DropdownMenuItem(value: 'Evening', child: Text('Evening')),
-                  ],
-                  onChanged: (value) => setState(() => _timeWindow = value ?? _timeWindow),
-                ),
-                const SizedBox(height: 14),
-              ],
-              _field(_message, 'Message (optional)', lines: 4),
+              _dateField('Preferred Viewing Date (Optional)'),
+              const SizedBox(height: 14),
+              _field(_message, 'Message / Specific Requirements (optional)', lines: 4),
             ],
             const SizedBox(height: 22),
             Row(
@@ -255,7 +217,7 @@ class _EnquiryFormState extends State<EnquiryForm> {
                 LuxuryButton(
                   label: _step < 2
                       ? 'Continue'
-                      : (_sending ? 'Sending...' : content.enquiryCta),
+                      : (_sending ? 'SENDING...' : content.enquiryCta),
                   onPressed: _sending
                       ? () {}
                       : () {

@@ -169,15 +169,17 @@ class LayoutConfig {
     this.sections = const [
       LayoutSection(id: 'hero', label: 'Hero'),
       LayoutSection(id: 'about', label: 'Overview'),
-      LayoutSection(id: 'highlights', label: 'Investment Highlights', visible: false),
+      LayoutSection(id: 'highlights', label: 'Why Legacy Tower'),
       LayoutSection(id: 'specs', label: 'Specifications', visible: false),
       LayoutSection(id: 'pricing', label: 'Pricing', visible: false),
-      LayoutSection(id: 'amenities', label: 'Amenities'),
       LayoutSection(id: 'living', label: 'Living Experience', visible: false),
       LayoutSection(id: 'gallery', label: 'Gallery'),
-      LayoutSection(id: 'floorPlans', label: 'Floor Plans', visible: false),
+      LayoutSection(id: 'floorPlans', label: 'Floor Plans'),
+      LayoutSection(id: 'amenities', label: 'Amenities'),
       LayoutSection(id: 'video', label: 'Walkthrough'),
       LayoutSection(id: 'connectivity', label: 'Location'),
+      LayoutSection(id: 'credibility', label: 'Developer Credibility'),
+      LayoutSection(id: 'brochure', label: 'Brochure CTA'),
       LayoutSection(id: 'updates', label: 'Construction Updates', visible: false),
       LayoutSection(id: 'faqs', label: 'FAQs', visible: false),
       LayoutSection(id: 'enquiry', label: 'Enquiry Form'),
@@ -665,7 +667,7 @@ class SiteContent {
         logoImageUrl: 'assets/images/nbdeveloperlogo.png',
         coverImageUrl: 'assets/images/nblegacy/Final Cam_05.jpg',
         heroImageUrl: 'assets/images/nblegacy/Final Cam_01.jpg',
-        aboutImageUrl: 'assets/images/nblegacy/Final Cam_10.jpg',
+        aboutImageUrl: 'assets/images/nblegacy/Final Cam_06.jpg',
         gallery: [
           'assets/images/nblegacy/Final Cam_01.jpg',
           'assets/images/nblegacy/Final Cam_05.jpg',
@@ -691,33 +693,21 @@ class SiteContent {
             imageUrl: 'assets/images/nblegacy/Final_5BHK_Living room_View.jpg',
           ),
           NamedItem(
-            title: 'Infinity Swimming Pool',
-            imageUrl: 'assets/images/nblegacy/Final_Swimmingpool_view.jpg',
-          ),
-          NamedItem(
             title: 'Double Height Lobby Entrance',
             imageUrl: 'assets/images/nblegacy/Final_Double_Height_Lift_Entrance_Lobby_View.jpg',
-          ),
-          NamedItem(
-            title: 'Private Theater',
-            imageUrl: 'assets/images/nblegacy/Final_Theater_view.jpg',
           ),
           NamedItem(
             title: 'Rooftop Terrace Lounge',
             imageUrl: 'assets/images/nblegacy/Final_Terrace_view.jpg',
           ),
-          NamedItem(
-            title: 'Banquet Hall',
-            imageUrl: 'assets/images/nblegacy/Final_Banquet_view.jpg',
-          ),
         ],
         palette: Palette(),
         layout: LayoutConfig(),
-        headerCta: 'Book Visit',
+        headerCta: 'BOOK A PRIVATE VIEWING',
         heroKicker: "Ahmedabad's Finest Address.",
         heroTitle: 'Where Luxury Finds Its True Scale.',
         heroLocation: 'Science Park, Ahmedabad',
-        heroPossession: 'POSSESSION : DEC 2029',
+        heroPossession: 'Possession: Dec 2029',
         heroRera:
             'PR/GJ/AHMEDABAD/DASKROI/Ahmedabad Municipal Corporation/RAA16634/240326/311232',
         heroOffers: [
@@ -737,49 +727,50 @@ class SiteContent {
         aboutBody:
             'NB Legacy Tower is an exclusive collection of 4 BHK simplex and 5 BHK vertical bungalow residences in Science Park, Ahmedabad. Rising 22 storeys, the landmark combines expansive residences, refined architecture and an elevated lifestyle designed around privacy, comfort and distinction.',
         stats: [
-          NamedItem(title: '22 Storey', subtitle: 'Luxury Tower', icon: 'layers'),
+          NamedItem(title: '22 Storeys', subtitle: 'Luxury Tower', icon: 'layers'),
           NamedItem(title: '211 Residences', subtitle: 'Exclusive Collection', icon: 'home'),
-          NamedItem(title: 'Premium 35+', subtitle: 'Lifestyle Amenities', icon: 'spa'),
+          NamedItem(title: '35+ Premium', subtitle: 'Lifestyle Amenities', icon: 'spa'),
           NamedItem(title: 'Science Park', subtitle: 'Ahmedabad', icon: 'place'),
         ],
-        highlightsEyebrow: 'Key Highlights',
-        highlightsTitle:
-            'Crafted for a lifestyle that defines luxury, exclusivity, and distinction',
+        highlightsEyebrow: 'WHY LEGACY TOWER',
+        highlightsTitle: 'A Rare Convergence of Scale, Location & Heritage',
         highlights: [
           NamedItem(
-            title: '4 BHK Simplex & 5 BHK Duplex Residences',
-            subtitle: 'Total Floors: 22 Storey Luxury Tower',
-            icon: 'domain',
+            title: 'Landmark Address',
+            subtitle:
+                'Situated on Science Park Road, Science City — Ahmedabad\'s most coveted ultra-luxury corridor.',
+            icon: 'place',
           ),
           NamedItem(
-            title: 'Grand Podium with Lifestyle Amenities',
-            subtitle: 'A private world above the city',
-            icon: 'deck',
+            title: 'Large-Format Residences',
+            subtitle:
+                'Expansive 4 BHK Simplex (5,420 sq ft) and 5 BHK Vertical Bungalows (9,400 sq ft) with double-height living.',
+            icon: 'apartment',
           ),
           NamedItem(
-            title: 'Triple Height Entrance Lobby',
-            subtitle: 'A five-star arrival, every day',
-            icon: 'meeting_room',
-          ),
-          NamedItem(
-            title: 'Ultra-Low Density Living',
-            subtitle: 'Space, silence and exclusivity',
+            title: 'Low-Density Living',
+            subtitle:
+                'Only 211 exclusive residences across a 22-storey tower, ensuring privacy and quietude.',
             icon: 'people',
           ),
           NamedItem(
-            title: '100% Vastu Compliance',
-            subtitle: 'Homes aligned with timeless principles',
-            icon: 'explore',
+            title: 'Curated Lifestyle',
+            subtitle:
+                '35+ world-class amenities including a 5-star double-height entrance lobby, private theatre & infinity pool.',
+            icon: 'spa',
           ),
           NamedItem(
-            title: 'Numero-Aligned Flat Numbers',
-            subtitle: 'Thoughtful detailing in every address',
-            icon: 'tag',
+            title: 'Long-Term Family Value',
+            subtitle:
+                'NB Developer — Since 1946. A legacy spanning eight decades.',
+            icon: 'family_restroom',
           ),
         ],
         amenitiesEyebrow: 'Premium Amenities',
         amenitiesTitle: 'Discover a lifestyle that goes beyond expectations',
         amenities: [
+          NamedItem(title: 'Infinity Swimming Pool', icon: 'pool', imageUrl: 'assets/images/nblegacy/Final_Swimmingpool_view.jpg'),
+          NamedItem(title: 'Private Theater', icon: 'theaters', imageUrl: 'assets/images/nblegacy/Final_Theater_view.jpg'),
           NamedItem(title: 'Banquet Hall', icon: 'celebration', imageUrl: 'assets/images/nblegacy/Final_Banquet_view.jpg'),
           NamedItem(title: 'Co-Working Space', icon: 'work', imageUrl: 'assets/images/nblegacy/Final_Co-working space_view.jpg'),
           NamedItem(title: 'Conference Room', icon: 'business', imageUrl: 'assets/images/nblegacy/Final_Conference_view.jpg'),
@@ -787,14 +778,12 @@ class SiteContent {
           NamedItem(title: 'Game Zone', icon: 'sports_esports', imageUrl: 'assets/images/nblegacy/Final_Gameroom_View.jpg'),
           NamedItem(title: 'Cricket & Badminton', icon: 'sports_tennis', imageUrl: 'assets/images/nblegacy/Final_Cricket_Badbinton_view.jpg'),
           NamedItem(title: 'Fitness Centre / Gym', icon: 'fitness_center', imageUrl: 'assets/images/nblegacy/Final_Gym_view.jpg'),
-          NamedItem(title: 'Swimming Pool', icon: 'pool', imageUrl: 'assets/images/nblegacy/Final_Swimmingpool_view.jpg'),
-          NamedItem(title: 'Dolby Sound Theatre', icon: 'theaters', imageUrl: 'assets/images/nblegacy/Final_Theater_view.jpg'),
           NamedItem(title: 'Salon & Spa', icon: 'spa', imageUrl: 'assets/images/nblegacy/Final_Salon_view.jpg'),
           NamedItem(title: 'Digital Golf Simulator', icon: 'golf_course', imageUrl: 'assets/images/nblegacy/Final_Golf stimulation_View.jpg'),
           NamedItem(title: 'Pet Park', icon: 'pets', imageUrl: 'assets/images/nblegacy/Final_Pet Area_view.jpg'),
         ],
-        livingEyebrow: 'Elevated Living Experience',
-        livingTitle: 'Designed to reflect grandeur, comfort, and timeless elegance',
+        livingEyebrow: 'EXCLUSIVELY DESIGNED RESIDENCES',
+        livingTitle: 'Masterpieces of Scale & Spatial Luxury',
         livingItems: [
           NamedItem(
             title: 'Grandeur & Entrance',
@@ -824,23 +813,26 @@ class SiteContent {
         connectivityEyebrow: 'Prime Connectivity',
         connectivityTitle: 'A location that connects exclusivity with convenience',
         locations: [
-          NamedItem(title: 'Premium Schools', subtitle: '3 KM', icon: 'school'),
-          NamedItem(title: 'CIMS Hospital', subtitle: '2 KM', icon: 'local_hospital'),
-          NamedItem(title: 'S P Ring Road', subtitle: '400 MTR', icon: 'alt_route'),
+          NamedItem(title: 'S.P. Ring Road', subtitle: '400 M', icon: 'alt_route'),
           NamedItem(title: 'Science City', subtitle: '1 KM', icon: 'science'),
+          NamedItem(title: 'CIMS Hospital', subtitle: '2 KM', icon: 'local_hospital'),
+          NamedItem(title: 'S.G. Highway', subtitle: '3 KM', icon: 'directions_car'),
           NamedItem(title: 'Jain Derasar', subtitle: '300 MTR', icon: 'temple_hindu'),
-          NamedItem(title: 'Swaminarayan Mandir', subtitle: '1.5 KM', icon: 'account_balance'),
-          NamedItem(title: 'SG Highway', subtitle: '3 KM', icon: 'directions_car'),
           NamedItem(title: 'Oxygen Park', subtitle: '300 MTR', icon: 'park'),
+          NamedItem(title: 'Swaminarayan Mandir', subtitle: '1.5 KM', icon: 'account_balance'),
+          NamedItem(title: 'Premium Schools', subtitle: '3 KM', icon: 'school'),
+          NamedItem(title: 'Vaishnodevi Circle', subtitle: '10 MINS', icon: 'alt_route'),
+          NamedItem(title: 'Intl Airport (SVPI)', subtitle: '25 MINS', icon: 'flight'),
         ],
         enquiryEyebrow: 'Experience Legacy Living',
         enquiryTitle: 'Schedule a Home Tour',
         enquiryBody:
             'Step into a world crafted for distinction. Leave your details and our team will reach out to guide you through your homebuying journey. We look forward to welcoming you to NB Legacy Tower.',
-        enquiryCta: 'Request a Home Tour',
+        enquiryCta: 'BOOK A PRIVATE VIEWING',
         interestedProjects: [
-          '4 BHK Simplex',
-          '5 BHK Vertical Bungalow',
+          '4 BHK Simplex (5,420 Sq. Ft.)',
+          '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
+          'Both Configurations',
         ],
         footerNote:
             'A landmark of ultra-luxury living by NB Developer — rooted in legacy since 1946.',
@@ -853,7 +845,7 @@ class SiteContent {
             'All specifications, prices and timelines are as provided by the promoter. Please verify the RERA registration on the Gujarat RERA website before making any purchase decision.',
         status: 'Ongoing',
         propertyType: 'Residential',
-        configurations: '4 BHK, 5 BHK',
+        configurations: '4 & 5 BHK Luxury Residences',
         specs: [
           NamedItem(title: 'Typology', subtitle: '4 BHK Simplex & 5 BHK Vertical Bungalow'),
           NamedItem(title: 'Storeys', subtitle: '22 Storey luxury tower'),
@@ -863,21 +855,21 @@ class SiteContent {
           NamedItem(title: 'Vastu', subtitle: '100% Vastu compliant'),
         ],
         pricing: [
-          NamedItem(title: '4 BHK Simplex', subtitle: '₹4.5 Cr onwards'),
-          NamedItem(title: '5 BHK Vertical Bungalow', subtitle: '₹8.1 Cr onwards'),
+          NamedItem(title: '4 BHK Simplex', subtitle: '₹4.5 Cr Onwards'),
+          NamedItem(title: '5 BHK Vertical Bungalow', subtitle: '₹8.1 Cr Onwards'),
         ],
         floorPlans: [
           NamedItem(
             title: '4 BHK Simplex Residence',
-            subtitle: 'Living Room, Dining, Kitchen & Balcony Views',
+            subtitle: '₹4.5 Cr Onwards • 5,420 Sq. Ft. Approx.',
             imageUrl:
-                'assets/images/nblegacy/Final_4BHK_Livingroom_View_02.jpg',
+                'assets/images/nblegacy/Final_4BHK_Livingroom_View_01.jpg',
           ),
           NamedItem(
             title: '5 BHK Vertical Bungalow',
-            subtitle: 'Duplex Bungalow Living & Suite Views',
+            subtitle: '₹8.1 Cr Onwards • 9,400 Sq. Ft. Approx. (Duplex)',
             imageUrl:
-                'assets/images/nblegacy/Final_5BHK_Bedroom_View.jpg',
+                'assets/images/nblegacy/Final_5BHK_Living room_View.jpg',
           ),
         ],
         faqs: [
@@ -888,7 +880,8 @@ class SiteContent {
           ),
           NamedItem(
             title: 'What configurations are available?',
-            subtitle: '4 BHK simplex residences and 5 BHK vertical bungalows.',
+            subtitle:
+                '4 BHK Simplex (5,420 Sq. Ft.) and 5 BHK Vertical Bungalow (9,400 Sq. Ft. duplex).',
           ),
           NamedItem(
             title: 'When is possession scheduled?',

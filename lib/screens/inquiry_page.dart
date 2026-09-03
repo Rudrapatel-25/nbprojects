@@ -15,6 +15,8 @@ import '../widgets/luxury_image.dart';
 import '../widgets/site_chrome.dart';
 import '../widgets/staggered_gallery.dart';
 
+typedef NbLegacyPage = InquiryPage;
+
 class InquiryPage extends StatefulWidget {
   const InquiryPage({
     super.key,
@@ -960,19 +962,12 @@ class _FloorPlanRequestDialogState extends State<_FloorPlanRequestDialog> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
   late String _config;
-  String _purpose = 'Primary Residence';
   bool _sending = false;
 
   static const _configs = [
     '4 BHK Simplex (5,420 Sq. Ft.)',
     '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
     'Both Configurations',
-  ];
-
-  static const _purposes = [
-    'Primary Residence',
-    'Investment',
-    'Second Home',
   ];
 
   @override
@@ -997,22 +992,29 @@ class _FloorPlanRequestDialogState extends State<_FloorPlanRequestDialog> {
       ..writeln('')
       ..writeln('👤 *Name:* ${_name.text.trim()}')
       ..writeln('📞 *Mobile:* ${_phone.text.trim()}')
-      ..writeln('🏠 *Configuration:* $_config')
-      ..writeln('🎯 *Purpose:* $_purpose');
+      ..writeln('🏠 *Configuration:* $_config');
 
     try {
-      try {
-        await ContentRepository().submitInquiry(
-          name: _name.text.trim(),
-          email: '',
-          phone: _phone.text.trim(),
-          project: _config,
-          projectId: 'nb-legacy-tower',
-          message: message.toString().trim(),
+      await ContentRepository().submitInquiry(
+        name: _name.text.trim(),
+        phone: _phone.text.trim(),
+        project: _config,
+        purpose: 'Floor Plan Request',
+        projectId: 'nb-legacy-tower',
+        message: message.toString().trim(),
+      );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF141210),
+            content: Text(
+              'Thank you, ${_name.text.trim()}! Your floor plan request for $_config has been received. Our sales desk will call you shortly.',
+              style: GoogleFonts.outfit(color: const Color(0xFFF3EEE4)),
+            ),
+          ),
         );
-      } catch (_) {}
-      await openWhatsApp(content, message: message.toString().trim());
-      if (mounted) Navigator.of(context).pop();
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1093,13 +1095,6 @@ class _FloorPlanRequestDialogState extends State<_FloorPlanRequestDialog> {
                     value: _config,
                     items: _configs,
                     onChanged: (v) => setState(() => _config = v ?? _config),
-                  ),
-                  const SizedBox(height: 18),
-                  _darkDropdown(
-                    label: 'Purpose of Purchase',
-                    value: _purpose,
-                    items: _purposes,
-                    onChanged: (v) => setState(() => _purpose = v ?? _purpose),
                   ),
                   const SizedBox(height: 28),
                   LuxuryButton(
@@ -1293,8 +1288,9 @@ class _ConnectivitySection extends StatelessWidget {
                           children: [
                             TileLayer(
                               urlTemplate:
-                                  'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                               userAgentPackageName: 'com.nbdeveloper.nbprojects',
+                              maxZoom: 19,
                             ),
                             MarkerLayer(
                               markers: [
@@ -1986,18 +1982,25 @@ class _BrochureRequestDialogState extends State<_BrochureRequestDialog> {
       ..writeln('🏠 *Configuration:* $_config');
 
     try {
-      try {
-        await ContentRepository().submitInquiry(
-          name: _name.text.trim(),
-          email: '',
-          phone: _phone.text.trim(),
-          project: _config,
-          projectId: 'nb-legacy-tower',
-          message: message.toString().trim(),
+      await ContentRepository().submitInquiry(
+        name: _name.text.trim(),
+        phone: _phone.text.trim(),
+        project: _config,
+        projectId: 'nb-legacy-tower',
+        message: message.toString().trim(),
+      );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF141210),
+            content: Text(
+              'Thank you, ${_name.text.trim()}! Your brochure request for $_config has been received. Our sales desk will call you shortly.',
+              style: GoogleFonts.outfit(color: const Color(0xFFF3EEE4)),
+            ),
+          ),
         );
-      } catch (_) {}
-      await openWhatsApp(content, message: message.toString().trim());
-      if (mounted) Navigator.of(context).pop();
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

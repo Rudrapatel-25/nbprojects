@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nbprojects/models/site_content.dart';
+import 'package:nbprojects/screens/admin_page.dart';
 import 'package:nbprojects/screens/inquiry_page.dart';
+import 'package:nbprojects/services/content_repository.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 void main() {
@@ -28,5 +30,20 @@ void main() {
       SiteContent.defaults().address.contains('Science City Road'),
       isTrue,
     );
+  });
+
+  test('admin credentials verification rejects empty inputs', () async {
+    final user = await ContentRepository().verifyAdminCredentials('', '');
+    expect(user, isNull);
+  });
+
+  testWidgets('admin page renders login screen', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminPage(),
+      ),
+    );
+    await tester.pump();
+    expect(find.textContaining('Admin Portal'), findsOneWidget);
   });
 }

@@ -282,17 +282,15 @@ class _BrandMark extends StatelessWidget {
   const _BrandMark({
     required this.content,
     required this.colors,
-    this.isDark = false,
   });
 
   final SiteContent content;
   final SiteColors colors;
-  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final titleColor = isDark ? colors.onDark : colors.text;
-    final subtitleColor = isDark ? colors.onDark.withValues(alpha: 0.75) : colors.muted;
+    final titleColor = colors.text;
+    final subtitleColor = colors.muted;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -302,7 +300,7 @@ class _BrandMark extends StatelessWidget {
           height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border.all(color: colors.brass.withValues(alpha: isDark ? 0.6 : 0.4)),
+            border: Border.all(color: colors.brass.withValues(alpha: 0.4)),
             borderRadius: BorderRadius.circular(4),
           ),
           child: content.logoImageUrl.startsWith('assets/')
@@ -463,19 +461,17 @@ class SiteFooter extends StatelessWidget {
                       fontSize: 12,
                     ),
                   ),
-                  /*
-                  if (!preview)
-                    TextButton(
-                      onPressed: () => context.go('/admin'),
-                      child: Text(
-                        'Admin login',
-                        style: GoogleFonts.outfit(
-                          color: colors.onDark.withValues(alpha: 0.45),
-                          fontSize: 12,
-                        ),
+                  InkWell(
+                    onTap: () => context.go('/admin'),
+                    child: Text(
+                      'Admin Portal',
+                      style: GoogleFonts.outfit(
+                        color: colors.onDark.withValues(alpha: 0.45),
+                        fontSize: 12,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
-                  */
+                  ),
                 ],
               ),
             ],

@@ -10,6 +10,9 @@ class InquiryLead {
     this.purpose = 'Primary Residence',
     this.message = '',
     this.status = 'new',
+    this.whatsappStatus = '-',
+    this.whatsappMessageId,
+    this.whatsappError,
     required this.createdAt,
   });
 
@@ -21,6 +24,9 @@ class InquiryLead {
   final String purpose;
   final String message;
   final String status;
+  final String whatsappStatus;
+  final String? whatsappMessageId;
+  final String? whatsappError;
   final DateTime createdAt;
 
   factory InquiryLead.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -44,6 +50,9 @@ class InquiryLead {
       purpose: (data['purpose'] ?? 'Primary Residence').toString(),
       message: (data['message'] ?? '').toString(),
       status: (data['status'] ?? 'new').toString(),
+      whatsappStatus: (data['whatsappStatus'] ?? data['wa_status'] ?? '-').toString(),
+      whatsappMessageId: data['whatsappMessageId']?.toString(),
+      whatsappError: data['whatsappError']?.toString(),
       createdAt: created,
     );
   }
@@ -56,6 +65,9 @@ class InquiryLead {
         'purpose': purpose,
         'message': message,
         'status': status,
+        'whatsappStatus': whatsappStatus,
+        'whatsappMessageId': ?whatsappMessageId,
+        'whatsappError': ?whatsappError,
         'createdAt': FieldValue.serverTimestamp(),
       };
 }

@@ -832,7 +832,6 @@ class SiteContent {
         interestedProjects: [
           '4 BHK Simplex (5,420 Sq. Ft.)',
           '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
-          'Both Configurations',
         ],
         footerNote:
             'A landmark of ultra-luxury living by NB Developer — rooted in legacy since 1946.',

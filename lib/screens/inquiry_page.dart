@@ -967,7 +967,6 @@ class _FloorPlanRequestDialogState extends State<_FloorPlanRequestDialog> {
   static const _configs = [
     '4 BHK Simplex (5,420 Sq. Ft.)',
     '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
-    'Both Configurations',
   ];
 
   @override
@@ -1954,13 +1953,12 @@ class _BrochureRequestDialogState extends State<_BrochureRequestDialog> {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _phone = TextEditingController();
-  String _config = 'Both Configurations';
+  String _config = '4 BHK Simplex (5,420 Sq. Ft.)';
   bool _sending = false;
 
   static const _configs = [
     '4 BHK Simplex (5,420 Sq. Ft.)',
     '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
-    'Both Configurations',
   ];
 
   @override

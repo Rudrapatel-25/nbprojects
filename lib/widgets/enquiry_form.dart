@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../models/site_content.dart';
 import '../services/content_repository.dart';
+import '../services/whatsapp_service.dart';
 import 'luxury.dart';
 
 class EnquiryForm extends StatefulWidget {
@@ -35,14 +36,16 @@ class _EnquiryFormState extends State<EnquiryForm> {
   @override
   void initState() {
     super.initState();
-    final options = widget.content.interestedProjects.isNotEmpty
+    final rawOptions = widget.content.interestedProjects.isNotEmpty
         ? widget.content.interestedProjects
         : [
             '4 BHK Simplex (5,420 Sq. Ft.)',
             '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
-            'Both Configurations',
           ];
-    _configuration = options.first;
+    final options = rawOptions
+        .where((opt) => !opt.toLowerCase().contains('both'))
+        .toList();
+    _configuration = options.isNotEmpty ? options.first : '4 BHK Simplex (5,420 Sq. Ft.)';
   }
 
   @override
@@ -56,14 +59,26 @@ class _EnquiryFormState extends State<EnquiryForm> {
   Future<void> _submit() async {
     if (!(_form.currentState?.validate() ?? false)) return;
     setState(() => _sending = true);
+
+    final customerName = _name.text.trim();
+    final customerPhone = _phone.text.trim();
+    final customerMessage = _message.text.trim();
+
     try {
+      // 1. Dispatch Botbiz WhatsApp template to customer
+      final waResult = await WhatsAppService.sendBookingTemplate(customerPhone);
+
+      // 2. Persist lead to Firestore with delivery status
       await ContentRepository().submitInquiry(
-        name: _name.text.trim(),
-        phone: _phone.text.trim(),
+        name: customerName,
+        phone: customerPhone,
         project: _configuration,
         purpose: 'Site Visit',
         projectId: widget.projectId.isNotEmpty ? widget.projectId : 'nb-legacy-tower',
-        message: _message.text.trim(),
+        message: customerMessage,
+        whatsappStatus: waResult.statusText,
+        whatsappMessageId: waResult.messageId,
+        whatsappError: waResult.error,
       );
 
       if (mounted) setState(() => _sent = true);
@@ -148,13 +163,21 @@ class _EnquiryFormState extends State<EnquiryForm> {
       );
     }
 
-    final options = widget.content.interestedProjects.isNotEmpty
+    final rawOptions = widget.content.interestedProjects.isNotEmpty
         ? widget.content.interestedProjects
         : [
             '4 BHK Simplex (5,420 Sq. Ft.)',
             '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
-            'Both Configurations',
           ];
+    final options = rawOptions
+        .where((opt) => !opt.toLowerCase().contains('both'))
+        .toList();
+    if (options.isEmpty) {
+      options.addAll([
+        '4 BHK Simplex (5,420 Sq. Ft.)',
+        '5 BHK Vertical Bungalow (9,400 Sq. Ft.)',
+      ]);
+    }
 
     return PaperCard(
       child: Form(

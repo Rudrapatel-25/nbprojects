@@ -9,6 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/inquiry_lead.dart';
 import '../models/site_content.dart';
 import '../services/content_repository.dart';
+import '../services/sheets_service.dart';
+import '../services/whatsapp_service.dart';
 import '../widgets/luxury.dart';
 
 class AdminPage extends StatefulWidget {
@@ -36,6 +38,7 @@ class _AdminPageState extends State<AdminPage> {
   final _searchController = TextEditingController();
   String _statusFilter = 'All';
   String _configFilter = 'All';
+  String _waFilter = 'All';
 
   @override
   void initState() {
@@ -148,7 +151,7 @@ class _AdminPageState extends State<AdminPage> {
     final buffer = StringBuffer();
     // UTF-8 BOM for Microsoft Excel recognition
     buffer.write('\uFEFF');
-    buffer.writeln('Date & Time,Customer Name,Mobile Number,Configuration,Purpose,Message,Status');
+    buffer.writeln('Date & Time,Customer Name,Mobile Number,Configuration,Purpose,Message,Status,WhatsApp Status,WhatsApp Message ID');
 
     for (final lead in leads) {
       final dateStr =
@@ -161,6 +164,8 @@ class _AdminPageState extends State<AdminPage> {
         _escapeCsv(lead.purpose),
         _escapeCsv(lead.message),
         _escapeCsv(lead.status),
+        _escapeCsv(lead.whatsappStatus),
+        _escapeCsv(lead.whatsappMessageId ?? ''),
       ];
       buffer.writeln(row.join(','));
     }
@@ -184,6 +189,113 @@ class _AdminPageState extends State<AdminPage> {
   String _escapeCsv(String value) {
     final v = value.replaceAll('"', '""').replaceAll('\n', ' ').replaceAll('\r', ' ');
     return '"$v"';
+  }
+
+  Future<void> _resendWhatsApp(InquiryLead lead) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF1E1B17),
+        content: Text('Sending WhatsApp message to ${lead.phone}...'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    final result = await WhatsAppService.sendBookingTemplate(lead.phone);
+    await _repo.updateInquiryWhatsAppStatus(
+      lead.id,
+      result.statusText,
+      messageId: result.messageId,
+      error: result.error,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: result.success ? const Color(0xFF2E7D32) : Colors.redAccent,
+        content: Text(
+          result.success
+              ? 'WhatsApp message delivered successfully to ${lead.phone}!'
+              : 'Failed to send WhatsApp: ${result.error}',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWhatsAppStatusBadge(SiteColors colors, InquiryLead lead) {
+    final status = lead.whatsappStatus.trim();
+    final isSuccess = status.toLowerCase() == 'sent' || status.toLowerCase() == 'success';
+    final isFailed = status.toLowerCase() == 'failed' || status.toLowerCase() == 'fail';
+
+    Color bg;
+    Color border;
+    Color textColor;
+    IconData icon;
+    String displayLabel;
+
+    if (isSuccess) {
+      bg = const Color(0xFF2E7D32).withValues(alpha: 0.18);
+      border = const Color(0xFF81C784);
+      textColor = const Color(0xFF81C784);
+      icon = Icons.check_circle_outline;
+      displayLabel = 'Sent';
+    } else if (isFailed) {
+      bg = Colors.redAccent.withValues(alpha: 0.18);
+      border = Colors.redAccent;
+      textColor = Colors.redAccent;
+      icon = Icons.error_outline;
+      displayLabel = 'Failed';
+    } else {
+      bg = Colors.white.withValues(alpha: 0.05);
+      border = Colors.white.withValues(alpha: 0.2);
+      textColor = colors.onDark.withValues(alpha: 0.5);
+      icon = Icons.remove_circle_outline;
+      displayLabel = '—';
+    }
+
+    return Tooltip(
+      message: isSuccess
+          ? 'Delivered via Botbiz WhatsApp API\nID: ${lead.whatsappMessageId ?? "Success"}'
+          : isFailed
+              ? 'Delivery failed: ${lead.whatsappError ?? "Unknown error"}\nClick retry icon to re-send'
+              : 'WhatsApp not sent or pending',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: border.withValues(alpha: 0.7)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 13, color: textColor),
+                const SizedBox(width: 5),
+                Text(
+                  displayLabel,
+                  style: GoogleFonts.outfit(
+                    color: textColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isFailed || (!isSuccess && status != '-')) ...[
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 14),
+              tooltip: 'Retry sending WhatsApp message',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              color: colors.brass,
+              onPressed: () => _resendWhatsApp(lead),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -658,6 +770,9 @@ class _AdminPageState extends State<AdminPage> {
               if (val == 'logout') _handleLogout();
               if (val == 'site') context.go('/');
               if (val == 'export') _exportToExcel(leads);
+              if (val == 'sheet') {
+                launchUrl(Uri.parse(SheetsService.sheetUrl), mode: LaunchMode.externalApplication);
+              }
             },
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -678,6 +793,16 @@ class _AdminPageState extends State<AdminPage> {
                 ),
               ),
               const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'sheet',
+                child: Row(
+                  children: [
+                    const Icon(Icons.table_chart_outlined, size: 16, color: Color(0xFF0F9D58)),
+                    const SizedBox(width: 8),
+                    Text('Google Sheet', style: GoogleFonts.outfit(color: colors.onDark, fontSize: 13)),
+                  ],
+                ),
+              ),
               PopupMenuItem(
                 value: 'export',
                 child: Row(
@@ -719,6 +844,24 @@ class _AdminPageState extends State<AdminPage> {
             label: Text(
               'Live Site',
               style: GoogleFonts.outfit(color: colors.onDark.withValues(alpha: 0.8)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF0F9D58),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            onPressed: () => launchUrl(
+              Uri.parse(SheetsService.sheetUrl),
+              mode: LaunchMode.externalApplication,
+            ),
+            icon: const Icon(Icons.table_chart_outlined, size: 18),
+            label: Text(
+              'Google Sheet',
+              style: GoogleFonts.cinzel(fontSize: 11, letterSpacing: 1, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 8),
@@ -1017,9 +1160,40 @@ class _AdminPageState extends State<AdminPage> {
                               DropdownMenuItem(value: 'All', child: Text('All Configs')),
                               DropdownMenuItem(value: '4 BHK', child: Text('4 BHK Simplex')),
                               DropdownMenuItem(value: '5 BHK', child: Text('5 BHK Bungalow')),
-                              DropdownMenuItem(value: 'Both', child: Text('Both Configurations')),
                             ],
                             onChanged: (val) => setState(() => _configFilter = val ?? 'All'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // WhatsApp Filter
+                  DropdownButtonHideUnderline(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F0D0B),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: colors.brass.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'WhatsApp: ',
+                            style: GoogleFonts.outfit(color: colors.onDark.withValues(alpha: 0.6), fontSize: 13),
+                          ),
+                          DropdownButton<String>(
+                            value: _waFilter,
+                            dropdownColor: const Color(0xFF1E1B17),
+                            style: GoogleFonts.outfit(color: colors.brass, fontSize: 13, fontWeight: FontWeight.bold),
+                            items: const [
+                              DropdownMenuItem(value: 'All', child: Text('All WhatsApp')),
+                              DropdownMenuItem(value: 'Sent', child: Text('Sent')),
+                              DropdownMenuItem(value: 'Failed', child: Text('Failed')),
+                            ],
+                            onChanged: (val) => setState(() => _waFilter = val ?? 'All'),
                           ),
                         ],
                       ),
@@ -1047,7 +1221,8 @@ class _AdminPageState extends State<AdminPage> {
         final matchesConfig = lead.configuration.toLowerCase().contains(query);
         final matchesPurpose = lead.purpose.toLowerCase().contains(query);
         final matchesMessage = lead.message.toLowerCase().contains(query);
-        if (!matchesName && !matchesPhone && !matchesConfig && !matchesPurpose && !matchesMessage) {
+        final matchesWa = lead.whatsappStatus.toLowerCase().contains(query);
+        if (!matchesName && !matchesPhone && !matchesConfig && !matchesPurpose && !matchesMessage && !matchesWa) {
           return false;
         }
       }
@@ -1060,6 +1235,16 @@ class _AdminPageState extends State<AdminPage> {
       // Config Filter
       if (_configFilter != 'All' && !lead.configuration.toLowerCase().contains(_configFilter.toLowerCase())) {
         return false;
+      }
+
+      // WhatsApp Filter
+      if (_waFilter != 'All') {
+        if (_waFilter == 'Sent' && lead.whatsappStatus.toLowerCase() != 'sent') {
+          return false;
+        }
+        if (_waFilter == 'Failed' && lead.whatsappStatus.toLowerCase() != 'failed') {
+          return false;
+        }
       }
 
       return true;
@@ -1118,6 +1303,12 @@ class _AdminPageState extends State<AdminPage> {
               DataColumn(
                 label: Text(
                   'MESSAGE',
+                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'WHATSAPP',
                   style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -1217,6 +1408,10 @@ class _AdminPageState extends State<AdminPage> {
                         ),
                       ),
                     ),
+                    // WhatsApp Status
+                    DataCell(
+                      _buildWhatsAppStatusBadge(colors, lead),
+                    ),
                     // Status
                     DataCell(
                       _buildStatusDropdown(colors, lead),
@@ -1310,6 +1505,7 @@ class _AdminPageState extends State<AdminPage> {
                         style: GoogleFonts.outfit(color: colors.onDark.withValues(alpha: 0.8), fontSize: 11),
                       ),
                     ),
+                    _buildWhatsAppStatusBadge(colors, lead),
                   ],
                 ),
                 if (lead.message.isNotEmpty) ...[

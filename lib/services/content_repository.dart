@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/inquiry_lead.dart';
+import 'sheets_service.dart';
 
 class ContentRepository {
   ContentRepository({FirebaseFirestore? firestore})
@@ -11,7 +12,7 @@ class ContentRepository {
   final FirebaseFirestore? _customFirestore;
   FirebaseFirestore get _db => _customFirestore ?? FirebaseFirestore.instance;
 
-  Future<void> submitInquiry({
+  Future<DocumentReference<Map<String, dynamic>>> submitInquiry({
     required String name,
     required String phone,
     String email = '',
@@ -19,7 +20,24 @@ class ContentRepository {
     String purpose = 'Primary Residence',
     String projectId = 'nb-legacy-tower',
     String message = '',
-  }) {
+    String whatsappStatus = '-',
+    String? whatsappMessageId,
+    String? whatsappError,
+  }) async {
+    // 1. Trigger realtime sync to Google Sheets in background
+    SheetsService.syncLead(
+      name: name,
+      phone: phone,
+      configuration: project,
+      purpose: purpose,
+      message: message,
+      whatsappStatus: whatsappStatus,
+    ).catchError((e) {
+      debugPrint('Sheets sync notice: $e');
+      return false;
+    });
+
+    // 2. Persist to Firestore
     return _db.collection('inquiries').add({
       'name': name,
       'phone': phone,
@@ -30,6 +48,9 @@ class ContentRepository {
       'projectId': projectId,
       'message': message,
       'status': 'new',
+      'whatsappStatus': whatsappStatus,
+      'whatsappMessageId': ?whatsappMessageId,
+      'whatsappError': ?whatsappError,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -42,6 +63,9 @@ class ContentRepository {
     String purpose = 'Primary Residence',
     String projectId = 'nb-legacy-tower',
     String message = '',
+    String whatsappStatus = '-',
+    String? whatsappMessageId,
+    String? whatsappError,
   }) =>
       submitInquiry(
         name: name,
@@ -51,6 +75,9 @@ class ContentRepository {
         purpose: purpose,
         projectId: projectId,
         message: message,
+        whatsappStatus: whatsappStatus,
+        whatsappMessageId: whatsappMessageId,
+        whatsappError: whatsappError,
       );
 
   Stream<List<InquiryLead>> inquiriesStream() {
@@ -67,6 +94,20 @@ class ContentRepository {
     return _db.collection('inquiries').doc(id).update({
       'status': status,
       'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateInquiryWhatsAppStatus(
+    String id,
+    String whatsappStatus, {
+    String? messageId,
+    String? error,
+  }) {
+    return _db.collection('inquiries').doc(id).update({
+      'whatsappStatus': whatsappStatus,
+      'whatsappMessageId': ?messageId,
+      'whatsappError': ?error,
+      'whatsappUpdatedAt': FieldValue.serverTimestamp(),
     });
   }
 

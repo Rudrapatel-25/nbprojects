@@ -40,6 +40,13 @@ class _AdminPageState extends State<AdminPage> {
   String _configFilter = 'All';
   String _waFilter = 'All';
 
+  // Pagination
+  int _currentPage = 1;
+  int _rowsPerPage = 10;
+
+  // Scroll Controller
+  final _verticalScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +78,7 @@ class _AdminPageState extends State<AdminPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _searchController.dispose();
+    _verticalScrollController.dispose();
     super.dispose();
   }
 
@@ -303,12 +311,13 @@ class _AdminPageState extends State<AdminPage> {
     final defaultContent = SiteContent.defaults();
     final colors = SiteColors(defaultContent.palette);
 
-    return Scaffold(
-      backgroundColor: colors.black,
-      body: _authenticated
-          ? _buildDashboard(colors, defaultContent)
-          : _buildLoginScreen(colors),
-    );
+    if (!_authenticated) {
+      return Scaffold(
+        backgroundColor: colors.black,
+        body: _buildLoginScreen(colors),
+      );
+    }
+    return _buildDashboard(colors, defaultContent);
   }
 
   // ---------------------------------------------------------------------------
@@ -606,6 +615,23 @@ class _AdminPageState extends State<AdminPage> {
         final allLeads = snapshot.data ?? [];
         final filteredLeads = _filterLeads(allLeads);
 
+        final totalLeads = filteredLeads.length;
+        final totalPages = (totalLeads <= 0) ? 1 : (totalLeads / _rowsPerPage).ceil();
+        if (_currentPage > totalPages) {
+          _currentPage = totalPages;
+        }
+        if (_currentPage < 1) {
+          _currentPage = 1;
+        }
+
+        final startIndex = (totalLeads == 0) ? 0 : (_currentPage - 1) * _rowsPerPage;
+        final endIndex = (startIndex + _rowsPerPage > totalLeads)
+            ? totalLeads
+            : startIndex + _rowsPerPage;
+        final pagedLeads = (totalLeads == 0)
+            ? <InquiryLead>[]
+            : filteredLeads.sublist(startIndex, endIndex);
+
         final screenWidth = MediaQuery.sizeOf(context).width;
         final isMobile = screenWidth < 600;
 
@@ -614,70 +640,95 @@ class _AdminPageState extends State<AdminPage> {
           appBar: _buildAppBar(context, colors, allLeads),
           body: snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData
               ? Center(child: CircularProgressIndicator(color: colors.brass))
-              : SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 12 : 20,
-                    vertical: isMobile ? 16 : 24,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1320),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Top Metrics Cards
-                          _buildMetricsRow(colors, allLeads),
-                          const SizedBox(height: 20),
+              : Scrollbar(
+                  controller: _verticalScrollController,
+                  thumbVisibility: true,
+                  trackVisibility: true,
+                  thickness: 8,
+                  radius: const Radius.circular(4),
+                  child: SingleChildScrollView(
+                    controller: _verticalScrollController,
+                    primary: false,
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 12 : 20,
+                      vertical: isMobile ? 16 : 24,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1320),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Top Metrics Cards
+                            _buildMetricsRow(colors, allLeads),
+                            const SizedBox(height: 20),
 
-                          // Search and Filters
-                          _buildFilterBar(colors, allLeads),
-                          const SizedBox(height: 16),
+                            // Search and Filters
+                            _buildFilterBar(colors, allLeads),
+                            const SizedBox(height: 16),
 
-                          // Results Counter
-                          Wrap(
-                            alignment: WrapAlignment.spaceBetween,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 12,
-                            runSpacing: 8,
-                            children: [
-                              Text(
-                                'SHOWING ${filteredLeads.length} OF ${allLeads.length} INQUIRIES',
-                                style: GoogleFonts.cinzel(
-                                  color: colors.brass,
-                                  fontSize: 12,
-                                  letterSpacing: 1.4,
-                                  fontWeight: FontWeight.bold,
+                            // Results Counter
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 12,
+                              runSpacing: 8,
+                              children: [
+                                Text(
+                                  totalLeads == 0
+                                      ? 'NO INQUIRIES FOUND'
+                                      : 'SHOWING ${startIndex + 1}–$endIndex OF $totalLeads INQUIRIES (PAGE $_currentPage OF $totalPages)',
+                                  style: GoogleFonts.cinzel(
+                                    color: colors.brass,
+                                    fontSize: 12,
+                                    letterSpacing: 1.2,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF66BB6A),
+                                  ),
+                                  onPressed: () => _exportToExcel(filteredLeads),
+                                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                                  label: Text(
+                                    'Export All ${filteredLeads.length} to Excel (.csv)',
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Inquiries Data View (Responsive: Table on Desktop, Cards on Mobile)
+                            if (filteredLeads.isEmpty)
+                              _buildEmptyState(colors)
+                            else ...[
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  if (constraints.maxWidth < 850) {
+                                    return _buildMobileCardList(colors, pagedLeads);
+                                  } else {
+                                    return _buildDesktopDataTable(colors, pagedLeads);
+                                  }
+                                },
                               ),
-                              TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFF66BB6A),
-                                ),
-                                onPressed: () => _exportToExcel(filteredLeads),
-                                icon: const Icon(Icons.file_download_outlined, size: 18),
-                                label: Text(
-                                  'Export to Excel (.csv)',
-                                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
-                                ),
+                              const SizedBox(height: 16),
+                              _buildPaginationBar(
+                                colors,
+                                totalLeads: totalLeads,
+                                totalPages: totalPages,
+                                currentPage: _currentPage,
+                                startIndex: startIndex,
+                                endIndex: endIndex,
+                                isMobile: isMobile,
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Inquiries Data View (Responsive: Table on Desktop, Cards on Mobile)
-                          if (filteredLeads.isEmpty)
-                            _buildEmptyState(colors)
-                          else
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                if (constraints.maxWidth < 850) {
-                                  return _buildMobileCardList(colors, filteredLeads);
-                                } else {
-                                  return _buildDesktopDataTable(colors, filteredLeads);
-                                }
-                              },
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1066,7 +1117,7 @@ class _AdminPageState extends State<AdminPage> {
               // Search box
               TextField(
                 controller: _searchController,
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => setState(() => _currentPage = 1),
                 style: GoogleFonts.outfit(color: colors.onDark, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Search by name, phone...',
@@ -1077,7 +1128,7 @@ class _AdminPageState extends State<AdminPage> {
                           icon: const Icon(Icons.clear, size: 16),
                           onPressed: () {
                             _searchController.clear();
-                            setState(() {});
+                            setState(() => _currentPage = 1);
                           },
                         )
                       : null,
@@ -1129,7 +1180,10 @@ class _AdminPageState extends State<AdminPage> {
                               DropdownMenuItem(value: 'contacted', child: Text('Contacted')),
                               DropdownMenuItem(value: 'completed', child: Text('Completed')),
                             ],
-                            onChanged: (val) => setState(() => _statusFilter = val ?? 'All'),
+                            onChanged: (val) => setState(() {
+                              _statusFilter = val ?? 'All';
+                              _currentPage = 1;
+                            }),
                           ),
                         ],
                       ),
@@ -1161,7 +1215,10 @@ class _AdminPageState extends State<AdminPage> {
                               DropdownMenuItem(value: '4 BHK', child: Text('4 BHK Simplex')),
                               DropdownMenuItem(value: '5 BHK', child: Text('5 BHK Bungalow')),
                             ],
-                            onChanged: (val) => setState(() => _configFilter = val ?? 'All'),
+                            onChanged: (val) => setState(() {
+                              _configFilter = val ?? 'All';
+                              _currentPage = 1;
+                            }),
                           ),
                         ],
                       ),
@@ -1193,7 +1250,10 @@ class _AdminPageState extends State<AdminPage> {
                               DropdownMenuItem(value: 'Sent', child: Text('Sent')),
                               DropdownMenuItem(value: 'Failed', child: Text('Failed')),
                             ],
-                            onChanged: (val) => setState(() => _waFilter = val ?? 'All'),
+                            onChanged: (val) => setState(() {
+                              _waFilter = val ?? 'All';
+                              _currentPage = 1;
+                            }),
                           ),
                         ],
                       ),
@@ -1252,7 +1312,7 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   // ---------------------------------------------------------------------------
-  // DESKTOP DATA TABLE
+  // DESKTOP DATA TABLE (FULL WIDTH - NO HORIZONTAL SCROLLING)
   // ---------------------------------------------------------------------------
   Widget _buildDesktopDataTable(SiteColors colors, List<InquiryLead> leads) {
     return Container(
@@ -1262,171 +1322,235 @@ class _AdminPageState extends State<AdminPage> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: colors.brass.withValues(alpha: 0.3)),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 1000),
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFF221E1A)),
-            dataRowMaxHeight: 68,
-            columns: [
-              DataColumn(
-                label: Text(
-                  'DATE & TIME',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              DataColumn(
-                label: Text(
-                  'CUSTOMER NAME',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              DataColumn(
-                label: Text(
-                  'MOBILE NUMBER',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              DataColumn(
-                label: Text(
-                  'CONFIGURATION',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              DataColumn(
-                label: Text(
-                  'PURPOSE',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              DataColumn(
-                label: Text(
-                  'MESSAGE',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              DataColumn(
-                label: Text(
-                  'WHATSAPP',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              DataColumn(
-                label: Text(
-                  'STATUS',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              DataColumn(
-                label: Text(
-                  'ACTIONS',
-                  style: GoogleFonts.cinzel(color: colors.brass, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
+      clipBehavior: Clip.antiAlias,
+      child: Table(
+        columnWidths: const {
+          0: FlexColumnWidth(1.2), // DATE & TIME
+          1: FlexColumnWidth(1.4), // CUSTOMER NAME
+          2: FlexColumnWidth(1.3), // MOBILE NUMBER
+          3: FlexColumnWidth(1.3), // CONFIGURATION
+          4: FlexColumnWidth(1.0), // PURPOSE
+          5: FlexColumnWidth(1.4), // MESSAGE
+          6: FlexColumnWidth(1.1), // WHATSAPP
+          7: FlexColumnWidth(1.3), // STATUS
+          8: FixedColumnWidth(48), // ACTIONS
+        },
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: [
+          // Table Header
+          TableRow(
+            decoration: const BoxDecoration(
+              color: Color(0xFF221E1A),
+            ),
+            children: [
+              _buildTableHeaderCell('DATE & TIME', colors),
+              _buildTableHeaderCell('CUSTOMER', colors),
+              _buildTableHeaderCell('MOBILE', colors),
+              _buildTableHeaderCell('CONFIG', colors),
+              _buildTableHeaderCell('PURPOSE', colors),
+              _buildTableHeaderCell('MESSAGE', colors),
+              _buildTableHeaderCell('WHATSAPP', colors),
+              _buildTableHeaderCell('STATUS', colors),
+              _buildTableHeaderCell('ACTION', colors, center: true),
             ],
-            rows: [
-              for (final lead in leads)
-                DataRow(
-                  cells: [
-                    // Date
-                    DataCell(
-                      Text(
-                        '${lead.createdAt.day.toString().padLeft(2, '0')}-${lead.createdAt.month.toString().padLeft(2, '0')}-${lead.createdAt.year}\n${lead.createdAt.hour.toString().padLeft(2, '0')}:${lead.createdAt.minute.toString().padLeft(2, '0')}',
-                        style: GoogleFonts.outfit(color: colors.onDark.withValues(alpha: 0.7), fontSize: 12),
-                      ),
+          ),
+
+          // Table Rows
+          for (int i = 0; i < leads.length; i++)
+            _buildTableRow(colors, leads[i], isEven: i.isEven),
+        ],
+      ),
+    );
+  }
+
+  TableRow _buildTableRow(SiteColors colors, InquiryLead lead, {required bool isEven}) {
+    final dateStr =
+        '${lead.createdAt.day.toString().padLeft(2, '0')}-${lead.createdAt.month.toString().padLeft(2, '0')}-${lead.createdAt.year}\n${lead.createdAt.hour.toString().padLeft(2, '0')}:${lead.createdAt.minute.toString().padLeft(2, '0')}';
+
+    final is5Bhk = lead.configuration.contains('5 BHK');
+    final configShort = is5Bhk ? '5 BHK Bungalow' : '4 BHK Simplex';
+
+    return TableRow(
+      decoration: BoxDecoration(
+        color: isEven ? const Color(0xFF181512) : const Color(0xFF13110F),
+        border: Border(
+          bottom: BorderSide(
+            color: colors.brass.withValues(alpha: 0.15),
+            width: 1,
+          ),
+        ),
+      ),
+      children: [
+        // 0. DATE & TIME
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          child: Text(
+            dateStr,
+            style: GoogleFonts.outfit(
+              color: colors.onDark.withValues(alpha: 0.7),
+              fontSize: 11,
+              height: 1.3,
+            ),
+          ),
+        ),
+
+        // 1. CUSTOMER NAME
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Text(
+            lead.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
+
+        // 2. MOBILE NUMBER
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: InkWell(
+            onTap: () => launchUrl(Uri.parse('tel:${lead.phone}')),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.phone, size: 12, color: colors.brass),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    lead.phone,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      color: colors.brass,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      decoration: TextDecoration.underline,
                     ),
-                    // Name
-                    DataCell(
-                      Text(
-                        lead.name,
-                        style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
-                      ),
-                    ),
-                    // Mobile (clickable to call)
-                    DataCell(
-                      InkWell(
-                        onTap: () => launchUrl(Uri.parse('tel:${lead.phone}')),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.phone, size: 14, color: colors.brass),
-                            const SizedBox(width: 6),
-                            Text(
-                              lead.phone,
-                              style: GoogleFonts.outfit(
-                                color: colors.brass,
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Configuration
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: lead.configuration.contains('5 BHK')
-                              ? const Color(0xFFFFB74D).withValues(alpha: 0.15)
-                              : colors.brass.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: lead.configuration.contains('5 BHK')
-                                ? const Color(0xFFFFB74D).withValues(alpha: 0.6)
-                                : colors.brass.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        child: Text(
-                          lead.configuration,
-                          style: GoogleFonts.outfit(
-                            color: lead.configuration.contains('5 BHK') ? const Color(0xFFFFB74D) : colors.brass,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Purpose
-                    DataCell(
-                      Text(
-                        lead.purpose,
-                        style: GoogleFonts.outfit(color: colors.onDark.withValues(alpha: 0.8), fontSize: 13),
-                      ),
-                    ),
-                    // Message
-                    DataCell(
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 180),
-                        child: Text(
-                          lead.message.isNotEmpty ? lead.message : '—',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.outfit(color: colors.onDark.withValues(alpha: 0.6), fontSize: 12),
-                        ),
-                      ),
-                    ),
-                    // WhatsApp Status
-                    DataCell(
-                      _buildWhatsAppStatusBadge(colors, lead),
-                    ),
-                    // Status
-                    DataCell(
-                      _buildStatusDropdown(colors, lead),
-                    ),
-                    // Actions
-                    DataCell(
-                      IconButton(
-                        tooltip: 'Delete inquiry',
-                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                        onPressed: () => _confirmDelete(lead),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-            ],
+              ],
+            ),
+          ),
+        ),
+
+        // 3. CONFIGURATION
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+          child: Tooltip(
+            message: lead.configuration,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: is5Bhk
+                    ? const Color(0xFFFFB74D).withValues(alpha: 0.15)
+                    : colors.brass.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: is5Bhk
+                      ? const Color(0xFFFFB74D).withValues(alpha: 0.6)
+                      : colors.brass.withValues(alpha: 0.6),
+                ),
+              ),
+              child: Text(
+                configShort,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.outfit(
+                  color: is5Bhk ? const Color(0xFFFFB74D) : colors.brass,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // 4. PURPOSE
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+          child: Text(
+            lead.purpose,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.outfit(
+              color: colors.onDark.withValues(alpha: 0.8),
+              fontSize: 12,
+            ),
+          ),
+        ),
+
+        // 5. MESSAGE
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+          child: Tooltip(
+            message: lead.message.isNotEmpty ? lead.message : 'No message provided',
+            child: Text(
+              lead.message.isNotEmpty ? lead.message : '—',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.outfit(
+                color: colors.onDark.withValues(alpha: 0.6),
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ),
+
+        // 6. WHATSAPP
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: _buildWhatsAppStatusBadge(colors, lead),
+          ),
+        ),
+
+        // 7. STATUS
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: _buildStatusDropdown(colors, lead),
+          ),
+        ),
+
+        // 8. ACTIONS
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 12),
+          child: Center(
+            child: IconButton(
+              tooltip: 'Delete inquiry',
+              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: () => _confirmDelete(lead),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTableHeaderCell(String label, SiteColors colors, {bool center = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+      child: Align(
+        alignment: center ? Alignment.center : Alignment.centerLeft,
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.cinzel(
+            color: colors.brass,
+            fontSize: 10.5,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
           ),
         ),
       ),
@@ -1551,6 +1675,211 @@ class _AdminPageState extends State<AdminPage> {
             ),
           ),
       ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // PAGINATION BAR
+  // ---------------------------------------------------------------------------
+  Widget _buildPaginationBar(
+    SiteColors colors, {
+    required int totalLeads,
+    required int totalPages,
+    required int currentPage,
+    required int startIndex,
+    required int endIndex,
+    required bool isMobile,
+  }) {
+    void goToPage(int page) {
+      if (page < 1 || page > totalPages || page == currentPage) return;
+      setState(() => _currentPage = page);
+      // Smooth scroll back to top of inquiries if user scrolled down
+      if (_verticalScrollController.hasClients && _verticalScrollController.offset > 400) {
+        _verticalScrollController.animateTo(
+          350,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+
+    // Build list of page numbers to show
+    final List<int> pagesToShow = [];
+    if (totalPages <= 7) {
+      for (int i = 1; i <= totalPages; i++) {
+        pagesToShow.add(i);
+      }
+    } else {
+      pagesToShow.add(1);
+      int start = (currentPage - 1).clamp(2, totalPages - 3);
+      int end = (currentPage + 1).clamp(4, totalPages - 1);
+      if (start > 2) pagesToShow.add(-1); // ellipsis
+      for (int i = start; i <= end; i++) {
+        pagesToShow.add(i);
+      }
+      if (end < totalPages - 1) pagesToShow.add(-2); // ellipsis
+      pagesToShow.add(totalPages);
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF181512),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.brass.withValues(alpha: 0.3)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16,
+        runSpacing: 12,
+        children: [
+          // Rows per page selector + Showing range
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Rows per page:',
+                style: GoogleFonts.outfit(
+                  color: colors.onDark.withValues(alpha: 0.7),
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F0D0B),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: colors.brass.withValues(alpha: 0.35)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _rowsPerPage,
+                    dropdownColor: const Color(0xFF1E1B17),
+                    style: GoogleFonts.outfit(
+                      color: colors.brass,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 10, child: Text('10')),
+                      DropdownMenuItem(value: 25, child: Text('25')),
+                      DropdownMenuItem(value: 50, child: Text('50')),
+                      DropdownMenuItem(value: 100, child: Text('100')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null && val != _rowsPerPage) {
+                        setState(() {
+                          _rowsPerPage = val;
+                          _currentPage = 1;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Text(
+                '${startIndex + 1}–$endIndex of $totalLeads',
+                style: GoogleFonts.outfit(
+                  color: colors.onDark.withValues(alpha: 0.9),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+
+          // Page navigation buttons
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // First Page
+              IconButton(
+                icon: const Icon(Icons.first_page, size: 20),
+                tooltip: 'First Page',
+                color: currentPage > 1 ? colors.brass : colors.onDark.withValues(alpha: 0.25),
+                onPressed: currentPage > 1 ? () => goToPage(1) : null,
+              ),
+              // Previous Page
+              IconButton(
+                icon: const Icon(Icons.chevron_left, size: 20),
+                tooltip: 'Previous Page',
+                color: currentPage > 1 ? colors.brass : colors.onDark.withValues(alpha: 0.25),
+                onPressed: currentPage > 1 ? () => goToPage(currentPage - 1) : null,
+              ),
+
+              // Page numeric chips (hidden on small mobile to avoid overflow)
+              if (!isMobile)
+                for (final p in pagesToShow)
+                  if (p < 0)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        '...',
+                        style: GoogleFonts.outfit(color: colors.onDark.withValues(alpha: 0.5), fontSize: 13),
+                      ),
+                    )
+                  else
+                    InkWell(
+                      onTap: () => goToPage(p),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: p == currentPage ? colors.brass : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: p == currentPage
+                                ? colors.brass
+                                : colors.brass.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Text(
+                          '$p',
+                          style: GoogleFonts.outfit(
+                            color: p == currentPage ? const Color(0xFF0F0D0B) : colors.onDark,
+                            fontWeight: p == currentPage ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+
+              // Current page info for mobile
+              if (isMobile)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    'Page $currentPage of $totalPages',
+                    style: GoogleFonts.outfit(
+                      color: colors.brass,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+              // Next Page
+              IconButton(
+                icon: const Icon(Icons.chevron_right, size: 20),
+                tooltip: 'Next Page',
+                color: currentPage < totalPages ? colors.brass : colors.onDark.withValues(alpha: 0.25),
+                onPressed: currentPage < totalPages ? () => goToPage(currentPage + 1) : null,
+              ),
+              // Last Page
+              IconButton(
+                icon: const Icon(Icons.last_page, size: 20),
+                tooltip: 'Last Page',
+                color: currentPage < totalPages ? colors.brass : colors.onDark.withValues(alpha: 0.25),
+                onPressed: currentPage < totalPages ? () => goToPage(totalPages) : null,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
